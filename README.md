@@ -1,6 +1,6 @@
 # what's this?
-Go implementation of Algorand based on https://github.com/ericderegt/algorand
 =======
+Go implementation of Algorand based on https://github.com/ericderegt/algorand
 # test command
 cd ..\n
 
