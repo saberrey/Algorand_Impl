@@ -1,7 +1,7 @@
-<<<<<<< HEAD
-# algorand
-Go implementation of Algorand
+# what's this?
+Go implementation of Algorand based on https://github.com/ericderegt/algorand
 =======
-# AlgorandImpl
-A simple Algorand algorithm implementation
+# test command
+cd ..\n
+
 >>>>>>> 02b804837a48c427723a32dd934e71c3b854358d
