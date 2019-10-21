@@ -3,7 +3,7 @@ package main
 import (
 	"crypto/rsa"
 	"fmt"
-	"github.com/nyu-distributed-systems-fa18/BGPalgorand_testMode/pb"
+	"github.com/saberrey/BGPalgorand_testMode/pb"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"log"

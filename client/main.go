@@ -12,8 +12,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nyu-distributed-systems-fa18/BGPalgorand_testMode/pb"
-	"github.com/nyu-distributed-systems-fa18/BGPalgorand_testMode/probe"
+	"github.com/saberrey/BGPalgorand_testMode/pb"
+	"github.com/saberrey/BGPalgorand_testMode/probe"
 )
 
 const TRANSACTION_NUMBER = 1000
