@@ -9,4 +9,4 @@ cd ..
 cd client  
 ./client 127.0.0.1:6001  
   
-it will send 1000 transactions to the network, you can see the result in client, have fun :)  
+it will send 1000 transactions to the network, you can see the consensus result in client, have fun :)  
