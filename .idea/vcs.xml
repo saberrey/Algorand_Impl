@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="VcsDirectoryMappings">
+    <mapping directory="$PROJECT_DIR$" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/golang.org/x/lint" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/golang.org/x/net" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/golang.org/x/sys" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/golang.org/x/text" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/golang.org/x/tools" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/golang/dep" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/golang/protobuf" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/google.golang.org/genproto" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/google.golang.org/grpc" vcs="Git" />
+  </component>
+</project>

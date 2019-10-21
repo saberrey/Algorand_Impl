@@ -4,10 +4,12 @@
 package pb
 
 import (
+	context "context"
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
-	context "golang.org/x/net/context"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -20,7 +22,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 type Op int32
 
@@ -80,6 +82,7 @@ var xxx_messageInfo_Empty proto.InternalMessageInfo
 
 // Represent a void message indicating success
 type Success struct {
+	S                    string   `protobuf:"bytes,1,opt,name=s,proto3" json:"s,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -109,6 +112,13 @@ func (m *Success) XXX_DiscardUnknown() {
 }
 
 var xxx_messageInfo_Success proto.InternalMessageInfo
+
+func (m *Success) GetS() string {
+	if m != nil {
+		return m.S
+	}
+	return ""
+}
 
 // Represents an error.
 type Error struct {
@@ -151,7 +161,8 @@ func (m *Error) GetMsg() string {
 }
 
 type Transaction struct {
-	V                    string   `protobuf:"bytes,1,opt,name=v,proto3" json:"v,omitempty"`
+	Id                   int64    `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	V                    string   `protobuf:"bytes,2,opt,name=v,proto3" json:"v,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -181,6 +192,13 @@ func (m *Transaction) XXX_DiscardUnknown() {
 }
 
 var xxx_messageInfo_Transaction proto.InternalMessageInfo
+
+func (m *Transaction) GetId() int64 {
+	if m != nil {
+		return m.Id
+	}
+	return 0
+}
 
 func (m *Transaction) GetV() string {
 	if m != nil {
@@ -443,11 +461,17 @@ func (m *AppendTransactionRet) GetSuccess() bool {
 }
 
 type ProposeBlockArgs struct {
-	Credential           *SIGRet  `protobuf:"bytes,1,opt,name=credential,proto3" json:"credential,omitempty"`
-	Block                *Block   `protobuf:"bytes,2,opt,name=block,proto3" json:"block,omitempty"`
-	Value                string   `protobuf:"bytes,3,opt,name=value,proto3" json:"value,omitempty"`
-	Round                int64    `protobuf:"varint,4,opt,name=round,proto3" json:"round,omitempty"`
-	Peer                 string   `protobuf:"bytes,5,opt,name=peer,proto3" json:"peer,omitempty"`
+	Peer                 string   `protobuf:"bytes,1,opt,name=peer,proto3" json:"peer,omitempty"`
+	Round                int64    `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty"`
+	Period               int64    `protobuf:"varint,3,opt,name=period,proto3" json:"period,omitempty"`
+	Flag                 string   `protobuf:"bytes,4,opt,name=flag,proto3" json:"flag,omitempty"`
+	Credence             int64    `protobuf:"varint,5,opt,name=credence,proto3" json:"credence,omitempty"`
+	Q                    []byte   `protobuf:"bytes,6,opt,name=q,proto3" json:"q,omitempty"`
+	NextQ                []byte   `protobuf:"bytes,7,opt,name=nextQ,proto3" json:"nextQ,omitempty"`
+	HashOfLastBlock      string   `protobuf:"bytes,8,opt,name=hashOfLastBlock,proto3" json:"hashOfLastBlock,omitempty"`
+	HashOfCurrentBlock   string   `protobuf:"bytes,9,opt,name=hashOfCurrentBlock,proto3" json:"hashOfCurrentBlock,omitempty"`
+	Block                *Block   `protobuf:"bytes,10,opt,name=block,proto3" json:"block,omitempty"`
+	Signature            *SIGRet  `protobuf:"bytes,11,opt,name=signature,proto3" json:"signature,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -478,23 +502,9 @@ func (m *ProposeBlockArgs) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_ProposeBlockArgs proto.InternalMessageInfo
 
-func (m *ProposeBlockArgs) GetCredential() *SIGRet {
+func (m *ProposeBlockArgs) GetPeer() string {
 	if m != nil {
-		return m.Credential
-	}
-	return nil
-}
-
-func (m *ProposeBlockArgs) GetBlock() *Block {
-	if m != nil {
-		return m.Block
-	}
-	return nil
-}
-
-func (m *ProposeBlockArgs) GetValue() string {
-	if m != nil {
-		return m.Value
+		return m.Peer
 	}
 	return ""
 }
@@ -506,11 +516,67 @@ func (m *ProposeBlockArgs) GetRound() int64 {
 	return 0
 }
 
-func (m *ProposeBlockArgs) GetPeer() string {
+func (m *ProposeBlockArgs) GetPeriod() int64 {
 	if m != nil {
-		return m.Peer
+		return m.Period
+	}
+	return 0
+}
+
+func (m *ProposeBlockArgs) GetFlag() string {
+	if m != nil {
+		return m.Flag
 	}
 	return ""
+}
+
+func (m *ProposeBlockArgs) GetCredence() int64 {
+	if m != nil {
+		return m.Credence
+	}
+	return 0
+}
+
+func (m *ProposeBlockArgs) GetQ() []byte {
+	if m != nil {
+		return m.Q
+	}
+	return nil
+}
+
+func (m *ProposeBlockArgs) GetNextQ() []byte {
+	if m != nil {
+		return m.NextQ
+	}
+	return nil
+}
+
+func (m *ProposeBlockArgs) GetHashOfLastBlock() string {
+	if m != nil {
+		return m.HashOfLastBlock
+	}
+	return ""
+}
+
+func (m *ProposeBlockArgs) GetHashOfCurrentBlock() string {
+	if m != nil {
+		return m.HashOfCurrentBlock
+	}
+	return ""
+}
+
+func (m *ProposeBlockArgs) GetBlock() *Block {
+	if m != nil {
+		return m.Block
+	}
+	return nil
+}
+
+func (m *ProposeBlockArgs) GetSignature() *SIGRet {
+	if m != nil {
+		return m.Signature
+	}
+	return nil
 }
 
 type ProposeBlockRet struct {
@@ -553,9 +619,14 @@ func (m *ProposeBlockRet) GetSuccess() bool {
 }
 
 type VoteArgs struct {
-	Message              *SIGRet  `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
-	Round                int64    `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty"`
-	Peer                 string   `protobuf:"bytes,3,opt,name=peer,proto3" json:"peer,omitempty"`
+	Peer      string  `protobuf:"bytes,1,opt,name=peer,proto3" json:"peer,omitempty"`
+	Value     string  `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+	Round     int64   `protobuf:"varint,3,opt,name=round,proto3" json:"round,omitempty"`
+	Period    int64   `protobuf:"varint,4,opt,name=period,proto3" json:"period,omitempty"`
+	VoteType  string  `protobuf:"bytes,5,opt,name=voteType,proto3" json:"voteType,omitempty"`
+	Signature *SIGRet `protobuf:"bytes,6,opt,name=signature,proto3" json:"signature,omitempty"`
+	//step
+	Step                 int64    `protobuf:"varint,7,opt,name=step,proto3" json:"step,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -586,11 +657,18 @@ func (m *VoteArgs) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_VoteArgs proto.InternalMessageInfo
 
-func (m *VoteArgs) GetMessage() *SIGRet {
+func (m *VoteArgs) GetPeer() string {
 	if m != nil {
-		return m.Message
+		return m.Peer
 	}
-	return nil
+	return ""
+}
+
+func (m *VoteArgs) GetValue() string {
+	if m != nil {
+		return m.Value
+	}
+	return ""
 }
 
 func (m *VoteArgs) GetRound() int64 {
@@ -600,11 +678,32 @@ func (m *VoteArgs) GetRound() int64 {
 	return 0
 }
 
-func (m *VoteArgs) GetPeer() string {
+func (m *VoteArgs) GetPeriod() int64 {
 	if m != nil {
-		return m.Peer
+		return m.Period
+	}
+	return 0
+}
+
+func (m *VoteArgs) GetVoteType() string {
+	if m != nil {
+		return m.VoteType
 	}
 	return ""
+}
+
+func (m *VoteArgs) GetSignature() *SIGRet {
+	if m != nil {
+		return m.Signature
+	}
+	return nil
+}
+
+func (m *VoteArgs) GetStep() int64 {
+	if m != nil {
+		return m.Step
+	}
+	return 0
 }
 
 type VoteRet struct {
@@ -648,8 +747,7 @@ func (m *VoteRet) GetSuccess() bool {
 
 type SIGRet struct {
 	UserId               string   `protobuf:"bytes,1,opt,name=userId,proto3" json:"userId,omitempty"`
-	Message              []string `protobuf:"bytes,2,rep,name=message,proto3" json:"message,omitempty"`
-	SignedMessage        string   `protobuf:"bytes,3,opt,name=signedMessage,proto3" json:"signedMessage,omitempty"`
+	SignedMessage        []byte   `protobuf:"bytes,2,opt,name=signedMessage,proto3" json:"signedMessage,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -687,18 +785,11 @@ func (m *SIGRet) GetUserId() string {
 	return ""
 }
 
-func (m *SIGRet) GetMessage() []string {
-	if m != nil {
-		return m.Message
-	}
-	return nil
-}
-
-func (m *SIGRet) GetSignedMessage() string {
+func (m *SIGRet) GetSignedMessage() []byte {
 	if m != nil {
 		return m.SignedMessage
 	}
-	return ""
+	return nil
 }
 
 type RequestBlockChainArgs struct {
@@ -743,6 +834,7 @@ func (m *RequestBlockChainArgs) GetPeer() string {
 type RequestBlockChainRet struct {
 	Peer                 string   `protobuf:"bytes,1,opt,name=peer,proto3" json:"peer,omitempty"`
 	Blockchain           []*Block `protobuf:"bytes,2,rep,name=blockchain,proto3" json:"blockchain,omitempty"`
+	Q                    []byte   `protobuf:"bytes,3,opt,name=q,proto3" json:"q,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -787,6 +879,99 @@ func (m *RequestBlockChainRet) GetBlockchain() []*Block {
 	return nil
 }
 
+func (m *RequestBlockChainRet) GetQ() []byte {
+	if m != nil {
+		return m.Q
+	}
+	return nil
+}
+
+type NoticeFinalBlockValueArgs struct {
+	Peer                 string   `protobuf:"bytes,1,opt,name=peer,proto3" json:"peer,omitempty"`
+	Value                string   `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *NoticeFinalBlockValueArgs) Reset()         { *m = NoticeFinalBlockValueArgs{} }
+func (m *NoticeFinalBlockValueArgs) String() string { return proto.CompactTextString(m) }
+func (*NoticeFinalBlockValueArgs) ProtoMessage()    {}
+func (*NoticeFinalBlockValueArgs) Descriptor() ([]byte, []int) {
+	return fileDescriptor_99e2a20f8b284799, []int{16}
+}
+
+func (m *NoticeFinalBlockValueArgs) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_NoticeFinalBlockValueArgs.Unmarshal(m, b)
+}
+func (m *NoticeFinalBlockValueArgs) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_NoticeFinalBlockValueArgs.Marshal(b, m, deterministic)
+}
+func (m *NoticeFinalBlockValueArgs) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_NoticeFinalBlockValueArgs.Merge(m, src)
+}
+func (m *NoticeFinalBlockValueArgs) XXX_Size() int {
+	return xxx_messageInfo_NoticeFinalBlockValueArgs.Size(m)
+}
+func (m *NoticeFinalBlockValueArgs) XXX_DiscardUnknown() {
+	xxx_messageInfo_NoticeFinalBlockValueArgs.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_NoticeFinalBlockValueArgs proto.InternalMessageInfo
+
+func (m *NoticeFinalBlockValueArgs) GetPeer() string {
+	if m != nil {
+		return m.Peer
+	}
+	return ""
+}
+
+func (m *NoticeFinalBlockValueArgs) GetValue() string {
+	if m != nil {
+		return m.Value
+	}
+	return ""
+}
+
+type NoticeFinalBlockValueRet struct {
+	Success              bool     `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *NoticeFinalBlockValueRet) Reset()         { *m = NoticeFinalBlockValueRet{} }
+func (m *NoticeFinalBlockValueRet) String() string { return proto.CompactTextString(m) }
+func (*NoticeFinalBlockValueRet) ProtoMessage()    {}
+func (*NoticeFinalBlockValueRet) Descriptor() ([]byte, []int) {
+	return fileDescriptor_99e2a20f8b284799, []int{17}
+}
+
+func (m *NoticeFinalBlockValueRet) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_NoticeFinalBlockValueRet.Unmarshal(m, b)
+}
+func (m *NoticeFinalBlockValueRet) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_NoticeFinalBlockValueRet.Marshal(b, m, deterministic)
+}
+func (m *NoticeFinalBlockValueRet) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_NoticeFinalBlockValueRet.Merge(m, src)
+}
+func (m *NoticeFinalBlockValueRet) XXX_Size() int {
+	return xxx_messageInfo_NoticeFinalBlockValueRet.Size(m)
+}
+func (m *NoticeFinalBlockValueRet) XXX_DiscardUnknown() {
+	xxx_messageInfo_NoticeFinalBlockValueRet.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_NoticeFinalBlockValueRet proto.InternalMessageInfo
+
+func (m *NoticeFinalBlockValueRet) GetSuccess() bool {
+	if m != nil {
+		return m.Success
+	}
+	return false
+}
+
 type Blockchain struct {
 	Blocks               []*Block `protobuf:"bytes,1,rep,name=blocks,proto3" json:"blocks,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -798,7 +983,7 @@ func (m *Blockchain) Reset()         { *m = Blockchain{} }
 func (m *Blockchain) String() string { return proto.CompactTextString(m) }
 func (*Blockchain) ProtoMessage()    {}
 func (*Blockchain) Descriptor() ([]byte, []int) {
-	return fileDescriptor_99e2a20f8b284799, []int{16}
+	return fileDescriptor_99e2a20f8b284799, []int{18}
 }
 
 func (m *Blockchain) XXX_Unmarshal(b []byte) error {
@@ -840,7 +1025,7 @@ func (m *Result) Reset()         { *m = Result{} }
 func (m *Result) String() string { return proto.CompactTextString(m) }
 func (*Result) ProtoMessage()    {}
 func (*Result) Descriptor() ([]byte, []int) {
-	return fileDescriptor_99e2a20f8b284799, []int{17}
+	return fileDescriptor_99e2a20f8b284799, []int{19}
 }
 
 func (m *Result) XXX_Unmarshal(b []byte) error {
@@ -898,78 +1083,12 @@ func (m *Result) GetS() *Success {
 	return nil
 }
 
-// XXX_OneofFuncs is for the internal use of the proto package.
-func (*Result) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
-	return _Result_OneofMarshaler, _Result_OneofUnmarshaler, _Result_OneofSizer, []interface{}{
+// XXX_OneofWrappers is for the internal use of the proto package.
+func (*Result) XXX_OneofWrappers() []interface{} {
+	return []interface{}{
 		(*Result_Bc)(nil),
 		(*Result_S)(nil),
 	}
-}
-
-func _Result_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
-	m := msg.(*Result)
-	// result
-	switch x := m.Result.(type) {
-	case *Result_Bc:
-		b.EncodeVarint(1<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Bc); err != nil {
-			return err
-		}
-	case *Result_S:
-		b.EncodeVarint(2<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.S); err != nil {
-			return err
-		}
-	case nil:
-	default:
-		return fmt.Errorf("Result.Result has unexpected type %T", x)
-	}
-	return nil
-}
-
-func _Result_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
-	m := msg.(*Result)
-	switch tag {
-	case 1: // result.bc
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(Blockchain)
-		err := b.DecodeMessage(msg)
-		m.Result = &Result_Bc{msg}
-		return true, err
-	case 2: // result.s
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(Success)
-		err := b.DecodeMessage(msg)
-		m.Result = &Result_S{msg}
-		return true, err
-	default:
-		return false, nil
-	}
-}
-
-func _Result_OneofSizer(msg proto.Message) (n int) {
-	m := msg.(*Result)
-	// result
-	switch x := m.Result.(type) {
-	case *Result_Bc:
-		s := proto.Size(x.Bc)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *Result_S:
-		s := proto.Size(x.S)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case nil:
-	default:
-		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
-	}
-	return n
 }
 
 // A type for arguments across all operations
@@ -988,7 +1107,7 @@ func (m *Command) Reset()         { *m = Command{} }
 func (m *Command) String() string { return proto.CompactTextString(m) }
 func (*Command) ProtoMessage()    {}
 func (*Command) Descriptor() ([]byte, []int) {
-	return fileDescriptor_99e2a20f8b284799, []int{18}
+	return fileDescriptor_99e2a20f8b284799, []int{20}
 }
 
 func (m *Command) XXX_Unmarshal(b []byte) error {
@@ -1053,78 +1172,129 @@ func (m *Command) GetTx() *Transaction {
 	return nil
 }
 
-// XXX_OneofFuncs is for the internal use of the proto package.
-func (*Command) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
-	return _Command_OneofMarshaler, _Command_OneofUnmarshaler, _Command_OneofSizer, []interface{}{
+// XXX_OneofWrappers is for the internal use of the proto package.
+func (*Command) XXX_OneofWrappers() []interface{} {
+	return []interface{}{
 		(*Command_Empty)(nil),
 		(*Command_Tx)(nil),
 	}
 }
 
-func _Command_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
-	m := msg.(*Command)
-	// arg
-	switch x := m.Arg.(type) {
-	case *Command_Empty:
-		b.EncodeVarint(2<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Empty); err != nil {
-			return err
-		}
-	case *Command_Tx:
-		b.EncodeVarint(3<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Tx); err != nil {
-			return err
-		}
-	case nil:
-	default:
-		return fmt.Errorf("Command.Arg has unexpected type %T", x)
+type Response struct {
+	Success              string   `protobuf:"bytes,1,opt,name=Success,proto3" json:"Success,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *Response) Reset()         { *m = Response{} }
+func (m *Response) String() string { return proto.CompactTextString(m) }
+func (*Response) ProtoMessage()    {}
+func (*Response) Descriptor() ([]byte, []int) {
+	return fileDescriptor_99e2a20f8b284799, []int{21}
+}
+
+func (m *Response) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Response.Unmarshal(m, b)
+}
+func (m *Response) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Response.Marshal(b, m, deterministic)
+}
+func (m *Response) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Response.Merge(m, src)
+}
+func (m *Response) XXX_Size() int {
+	return xxx_messageInfo_Response.Size(m)
+}
+func (m *Response) XXX_DiscardUnknown() {
+	xxx_messageInfo_Response.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Response proto.InternalMessageInfo
+
+func (m *Response) GetSuccess() string {
+	if m != nil {
+		return m.Success
+	}
+	return ""
+}
+
+type RPState struct {
+	Message              []string `protobuf:"bytes,1,rep,name=Message,proto3" json:"Message,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *RPState) Reset()         { *m = RPState{} }
+func (m *RPState) String() string { return proto.CompactTextString(m) }
+func (*RPState) ProtoMessage()    {}
+func (*RPState) Descriptor() ([]byte, []int) {
+	return fileDescriptor_99e2a20f8b284799, []int{22}
+}
+
+func (m *RPState) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RPState.Unmarshal(m, b)
+}
+func (m *RPState) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RPState.Marshal(b, m, deterministic)
+}
+func (m *RPState) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RPState.Merge(m, src)
+}
+func (m *RPState) XXX_Size() int {
+	return xxx_messageInfo_RPState.Size(m)
+}
+func (m *RPState) XXX_DiscardUnknown() {
+	xxx_messageInfo_RPState.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RPState proto.InternalMessageInfo
+
+func (m *RPState) GetMessage() []string {
+	if m != nil {
+		return m.Message
 	}
 	return nil
 }
 
-func _Command_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
-	m := msg.(*Command)
-	switch tag {
-	case 2: // arg.empty
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(Empty)
-		err := b.DecodeMessage(msg)
-		m.Arg = &Command_Empty{msg}
-		return true, err
-	case 3: // arg.tx
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(Transaction)
-		err := b.DecodeMessage(msg)
-		m.Arg = &Command_Tx{msg}
-		return true, err
-	default:
-		return false, nil
-	}
+type SLState struct {
+	Message              []string `protobuf:"bytes,1,rep,name=Message,proto3" json:"Message,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func _Command_OneofSizer(msg proto.Message) (n int) {
-	m := msg.(*Command)
-	// arg
-	switch x := m.Arg.(type) {
-	case *Command_Empty:
-		s := proto.Size(x.Empty)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *Command_Tx:
-		s := proto.Size(x.Tx)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case nil:
-	default:
-		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
+func (m *SLState) Reset()         { *m = SLState{} }
+func (m *SLState) String() string { return proto.CompactTextString(m) }
+func (*SLState) ProtoMessage()    {}
+func (*SLState) Descriptor() ([]byte, []int) {
+	return fileDescriptor_99e2a20f8b284799, []int{23}
+}
+
+func (m *SLState) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SLState.Unmarshal(m, b)
+}
+func (m *SLState) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SLState.Marshal(b, m, deterministic)
+}
+func (m *SLState) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SLState.Merge(m, src)
+}
+func (m *SLState) XXX_Size() int {
+	return xxx_messageInfo_SLState.Size(m)
+}
+func (m *SLState) XXX_DiscardUnknown() {
+	xxx_messageInfo_SLState.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SLState proto.InternalMessageInfo
+
+func (m *SLState) GetMessage() []string {
+	if m != nil {
+		return m.Message
 	}
-	return n
+	return nil
 }
 
 func init() {
@@ -1145,63 +1315,83 @@ func init() {
 	proto.RegisterType((*SIGRet)(nil), "pb.SIGRet")
 	proto.RegisterType((*RequestBlockChainArgs)(nil), "pb.RequestBlockChainArgs")
 	proto.RegisterType((*RequestBlockChainRet)(nil), "pb.RequestBlockChainRet")
+	proto.RegisterType((*NoticeFinalBlockValueArgs)(nil), "pb.NoticeFinalBlockValueArgs")
+	proto.RegisterType((*NoticeFinalBlockValueRet)(nil), "pb.NoticeFinalBlockValueRet")
 	proto.RegisterType((*Blockchain)(nil), "pb.Blockchain")
 	proto.RegisterType((*Result)(nil), "pb.Result")
 	proto.RegisterType((*Command)(nil), "pb.Command")
+	proto.RegisterType((*Response)(nil), "pb.Response")
+	proto.RegisterType((*RPState)(nil), "pb.RPState")
+	proto.RegisterType((*SLState)(nil), "pb.SLState")
 }
 
 func init() { proto.RegisterFile("bc.proto", fileDescriptor_99e2a20f8b284799) }
 
 var fileDescriptor_99e2a20f8b284799 = []byte{
-	// 758 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xa4, 0x55, 0x41, 0x6f, 0xeb, 0x44,
-	0x10, 0x8e, 0xed, 0xd8, 0x4e, 0x26, 0x25, 0x0d, 0xd3, 0x14, 0xdc, 0x14, 0xd1, 0x76, 0x5b, 0xa4,
-	0xd2, 0x4a, 0x05, 0x85, 0x0b, 0x12, 0xa7, 0xa6, 0x44, 0x4d, 0x11, 0xd0, 0xb2, 0x29, 0x1c, 0x38,
-	0xe1, 0xd8, 0xab, 0x34, 0x22, 0xb1, 0xcd, 0xee, 0x26, 0x2a, 0x12, 0xbf, 0x84, 0xcb, 0xfb, 0x27,
-	0xef, 0xb7, 0x3d, 0xed, 0xae, 0x13, 0xbb, 0x49, 0xda, 0xcb, 0xbb, 0x79, 0xe6, 0x9b, 0x99, 0xfd,
-	0x66, 0xe7, 0x9b, 0x35, 0xd4, 0x46, 0xd1, 0x55, 0xc6, 0x53, 0x99, 0xa2, 0x9d, 0x8d, 0x88, 0x0f,
-	0x6e, 0x7f, 0x96, 0xc9, 0x7f, 0x49, 0x1d, 0xfc, 0xe1, 0x3c, 0x8a, 0x98, 0x10, 0xe4, 0x00, 0xdc,
-	0x3e, 0xe7, 0x29, 0xc7, 0x16, 0x38, 0x33, 0x31, 0x0e, 0xac, 0x63, 0xeb, 0xbc, 0x4e, 0xd5, 0x27,
-	0x39, 0x84, 0xc6, 0x23, 0x0f, 0x13, 0x11, 0x46, 0x72, 0x92, 0x26, 0xb8, 0x03, 0xd6, 0x22, 0x87,
-	0xad, 0x05, 0xf9, 0xdf, 0x02, 0xb7, 0x37, 0x4d, 0xa3, 0xbf, 0xb1, 0x09, 0xf6, 0x24, 0xd6, 0x80,
-	0x43, 0xed, 0x49, 0x8c, 0x5f, 0x40, 0x5d, 0x4e, 0x66, 0x4c, 0xc8, 0x70, 0x96, 0x05, 0xb6, 0x8e,
-	0x2f, 0x1c, 0xd8, 0x81, 0x5a, 0xc6, 0xd9, 0x62, 0x10, 0x8a, 0xa7, 0xc0, 0xd1, 0xe0, 0xca, 0x46,
-	0x84, 0xea, 0x93, 0xf2, 0x57, 0xb5, 0x5f, 0x7f, 0xe3, 0x11, 0xd8, 0xf2, 0x39, 0x70, 0x8f, 0x9d,
-	0xf3, 0x46, 0x77, 0xf7, 0x2a, 0x1b, 0x5d, 0x95, 0x28, 0x51, 0x5b, 0x3e, 0xab, 0x24, 0xc1, 0x58,
-	0x1c, 0x78, 0x26, 0x49, 0x7d, 0x93, 0x07, 0xd8, 0xbd, 0xce, 0x32, 0x96, 0xc4, 0x9a, 0xe1, 0x35,
-	0x1f, 0x0b, 0x15, 0x96, 0x31, 0xc6, 0xf3, 0x06, 0xf4, 0x37, 0x7e, 0x0d, 0x30, 0x52, 0x01, 0xd1,
-	0x53, 0x38, 0x49, 0x02, 0x5b, 0x9f, 0x51, 0x57, 0x67, 0xe8, 0x34, 0x5a, 0x02, 0xc9, 0x05, 0x34,
-	0x4b, 0x15, 0x29, 0x93, 0x18, 0x80, 0x2f, 0xcc, 0x1d, 0xea, 0x9a, 0x35, 0xba, 0x34, 0xc9, 0xcf,
-	0xb0, 0x6f, 0x62, 0x4b, 0x54, 0x5f, 0xe5, 0x60, 0xfa, 0x53, 0xd7, 0xb4, 0xbd, 0x3f, 0xf2, 0x2d,
-	0xb4, 0x37, 0xaa, 0xbd, 0x7d, 0xfe, 0x3b, 0x0b, 0x5a, 0x0f, 0x3c, 0xcd, 0x52, 0xc1, 0x8a, 0xfe,
-	0x2f, 0x00, 0x22, 0xce, 0x62, 0x96, 0xc8, 0x49, 0x38, 0xd5, 0x19, 0x8d, 0x2e, 0xa8, 0xf3, 0x86,
-	0x77, 0xb7, 0x94, 0x49, 0x5a, 0x42, 0xf1, 0x08, 0x5c, 0xdd, 0x7a, 0x4e, 0xab, 0x74, 0x25, 0xc6,
-	0x8f, 0x6d, 0x70, 0x17, 0xe1, 0x74, 0xce, 0xf2, 0x09, 0x1a, 0x43, 0x79, 0x79, 0x3a, 0x4f, 0x62,
-	0x3d, 0x3f, 0x87, 0x1a, 0x63, 0xd5, 0xb4, 0x5b, 0x34, 0x4d, 0x2e, 0x61, 0xb7, 0x4c, 0xf0, 0xed,
-	0x76, 0xfe, 0x84, 0xda, 0x1f, 0xa9, 0x64, 0xba, 0x8b, 0x33, 0xf0, 0x67, 0x4c, 0x88, 0x70, 0xcc,
-	0xb6, 0xb4, 0xb0, 0x84, 0x0a, 0x22, 0xf6, 0x36, 0x22, 0x4e, 0x89, 0xc8, 0x29, 0xf8, 0xaa, 0xf6,
-	0xdb, 0x04, 0xfe, 0x02, 0xcf, 0x9c, 0x80, 0x9f, 0x81, 0x37, 0x17, 0x8c, 0xdf, 0xc5, 0xf9, 0x08,
-	0x73, 0x4b, 0xe5, 0x2e, 0x69, 0x29, 0x15, 0xd5, 0x0b, 0x2a, 0x67, 0xf0, 0x89, 0x98, 0x8c, 0x13,
-	0x16, 0xff, 0x92, 0xe3, 0xe6, 0xf4, 0x97, 0x4e, 0x72, 0x09, 0xfb, 0x94, 0xfd, 0x33, 0x67, 0x42,
-	0xea, 0xfb, 0xb8, 0x51, 0x92, 0x7b, 0x4d, 0x31, 0xe4, 0x77, 0x68, 0x6f, 0x04, 0x2b, 0x72, 0x1f,
-	0xa9, 0xf0, 0x6f, 0x00, 0x7a, 0x2b, 0x0b, 0x4f, 0xc0, 0xd3, 0x98, 0xba, 0x8c, 0xb5, 0xa4, 0x1c,
-	0x20, 0xbf, 0x81, 0x47, 0x99, 0x98, 0x4f, 0x25, 0x1e, 0x83, 0x3d, 0x8a, 0xf2, 0x81, 0x34, 0x57,
-	0x81, 0xba, 0xd0, 0xa0, 0x42, 0xed, 0x51, 0x84, 0x87, 0x60, 0x89, 0x5c, 0x4d, 0x0d, 0x3d, 0x31,
-	0x73, 0xb5, 0x83, 0x0a, 0xb5, 0x44, 0xaf, 0x06, 0x1e, 0xd7, 0x85, 0xc8, 0x7f, 0xe0, 0xdf, 0xa4,
-	0xb3, 0x59, 0x98, 0xc4, 0x78, 0x06, 0xf5, 0x34, 0x63, 0x3c, 0x54, 0x72, 0xd7, 0xa5, 0x9b, 0x5d,
-	0x4f, 0x65, 0xde, 0x67, 0xb4, 0x00, 0xf0, 0x04, 0x5c, 0xa6, 0x5e, 0xb4, 0xb2, 0x52, 0xf5, 0x13,
-	0x37, 0xa8, 0x50, 0x83, 0xe0, 0x89, 0x5e, 0x30, 0x67, 0xeb, 0x82, 0x29, 0x76, 0xf2, 0xb9, 0xe7,
-	0x82, 0x13, 0xf2, 0xf1, 0xc5, 0xe7, 0x60, 0xdf, 0x67, 0xe8, 0x83, 0x73, 0xdb, 0x7f, 0x6c, 0x55,
-	0xb0, 0x06, 0xd5, 0x61, 0xff, 0xd7, 0x1f, 0x5b, 0x56, 0xf7, 0xbd, 0x0d, 0xb5, 0xeb, 0xe9, 0x38,
-	0xe5, 0x8a, 0xd8, 0xf7, 0xd0, 0x28, 0xbd, 0x04, 0xb8, 0xa7, 0x4a, 0xae, 0x3d, 0x36, 0x1d, 0x5c,
-	0x73, 0x52, 0x26, 0x49, 0x05, 0x7f, 0x82, 0x4f, 0x37, 0x36, 0x19, 0x0f, 0x8a, 0xd0, 0xb5, 0xe7,
-	0xa2, 0x13, 0x6c, 0x85, 0x4c, 0xad, 0x1f, 0x60, 0xa7, 0xbc, 0x41, 0xd8, 0x56, 0xb1, 0xeb, 0x4b,
-	0xdf, 0xd9, 0x5b, 0xf7, 0x9a, 0xe4, 0x53, 0xa8, 0x2a, 0xd5, 0xe3, 0x8e, 0x82, 0x97, 0xbb, 0xd5,
-	0x69, 0x2c, 0xad, 0x15, 0xdb, 0x0d, 0x99, 0x19, 0xb6, 0x5b, 0xa5, 0x6a, 0xd8, 0x6e, 0x13, 0x26,
-	0xa9, 0x74, 0x1f, 0xc0, 0xef, 0xdd, 0x0c, 0x65, 0xca, 0x19, 0x7e, 0x09, 0xce, 0x2d, 0x93, 0x58,
-	0x4c, 0xaa, 0x03, 0x26, 0x51, 0x0b, 0xa0, 0x82, 0x5f, 0x41, 0x75, 0xc8, 0x92, 0x18, 0xd7, 0x47,
-	0xf5, 0x32, 0x6c, 0xe4, 0xe9, 0xbf, 0xda, 0x77, 0x1f, 0x02, 0x00, 0x00, 0xff, 0xff, 0x8c, 0xcd,
-	0x0b, 0x19, 0xe1, 0x06, 0x00, 0x00,
+	// 999 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xa4, 0x56, 0xcf, 0x6e, 0xdb, 0x46,
+	0x13, 0x17, 0x49, 0x51, 0xa2, 0x46, 0xfa, 0x6c, 0x7f, 0x1b, 0xbb, 0xa1, 0xd5, 0xb4, 0xb1, 0x37,
+	0x29, 0xe0, 0xda, 0x80, 0x1b, 0xa8, 0x3d, 0x14, 0xe8, 0xc9, 0x72, 0x15, 0x3b, 0x85, 0x1b, 0x2b,
+	0x2b, 0xc3, 0x77, 0x8a, 0xdc, 0xc8, 0x42, 0x25, 0x92, 0xde, 0x5d, 0x09, 0x0e, 0xd0, 0x97, 0xe8,
+	0xa5, 0x87, 0x3e, 0x4b, 0x5f, 0xa1, 0xef, 0x54, 0xcc, 0x2e, 0x29, 0xc9, 0x14, 0xad, 0xa2, 0xe8,
+	0x6d, 0x67, 0xe6, 0xb7, 0xb3, 0xbf, 0xf9, 0x4b, 0x82, 0x37, 0x0c, 0x4f, 0x53, 0x91, 0xa8, 0x84,
+	0xd8, 0xe9, 0x90, 0xd6, 0xc1, 0xed, 0x4d, 0x53, 0xf5, 0x89, 0x3e, 0x87, 0xfa, 0x60, 0x16, 0x86,
+	0x5c, 0x4a, 0xd2, 0x02, 0x4b, 0xfa, 0xd6, 0x81, 0x75, 0xd4, 0x60, 0x96, 0xa4, 0xfb, 0xe0, 0xf6,
+	0x84, 0x48, 0x04, 0xd9, 0x01, 0x67, 0x2a, 0x47, 0x99, 0x01, 0x8f, 0xf4, 0x04, 0x9a, 0x37, 0x22,
+	0x88, 0x65, 0x10, 0xaa, 0x71, 0x12, 0x93, 0x2d, 0xb0, 0xc7, 0x91, 0xb6, 0x3b, 0xcc, 0x1e, 0x47,
+	0xe8, 0x67, 0xee, 0xdb, 0xc6, 0xcf, 0x9c, 0xfe, 0x61, 0x81, 0xdb, 0x9d, 0x24, 0xe1, 0x2f, 0x6b,
+	0xb8, 0x17, 0xd0, 0x50, 0xe3, 0x29, 0x97, 0x2a, 0x98, 0xa6, 0x19, 0x7e, 0xa9, 0x20, 0x6d, 0xf0,
+	0x52, 0xc1, 0xe7, 0x97, 0x81, 0xbc, 0xf3, 0x1d, 0x6d, 0x5c, 0xc8, 0x84, 0x40, 0xf5, 0x0e, 0xf5,
+	0x55, 0xad, 0xd7, 0x67, 0xf2, 0x12, 0x6c, 0xf5, 0xe0, 0xbb, 0x07, 0xce, 0x51, 0xb3, 0xb3, 0x7d,
+	0x9a, 0x0e, 0x4f, 0x57, 0x28, 0x32, 0x5b, 0x3d, 0xe0, 0x25, 0xc9, 0x79, 0xe4, 0xd7, 0xcc, 0x25,
+	0x3c, 0xd3, 0x3e, 0x6c, 0x9f, 0xa5, 0x29, 0x8f, 0x23, 0xcd, 0xf0, 0x4c, 0x8c, 0x24, 0xc2, 0x52,
+	0xce, 0x45, 0x16, 0xaf, 0x3e, 0x93, 0xaf, 0x01, 0x86, 0x08, 0x08, 0xef, 0x82, 0x71, 0xec, 0xdb,
+	0xfa, 0x8d, 0x06, 0xbe, 0xa1, 0xaf, 0xb1, 0x15, 0x23, 0x3d, 0x86, 0xad, 0x15, 0x8f, 0x8c, 0x2b,
+	0xe2, 0x43, 0x5d, 0x9a, 0x0c, 0x6b, 0x9f, 0x1e, 0xcb, 0x45, 0x7a, 0x05, 0x7b, 0x06, 0xbb, 0x42,
+	0xf5, 0x49, 0x0e, 0x26, 0x3e, 0x4c, 0x53, 0x79, 0x7c, 0xf4, 0x0d, 0xec, 0xae, 0x79, 0xdb, 0xfc,
+	0xfe, 0x5f, 0x36, 0xec, 0xf4, 0x45, 0x92, 0x26, 0x92, 0x6f, 0x8e, 0x7f, 0x17, 0x5c, 0x91, 0xcc,
+	0xe2, 0x48, 0x3f, 0xef, 0x30, 0x23, 0x90, 0xcf, 0xa0, 0x96, 0x72, 0x31, 0x4e, 0x22, 0x5d, 0x1f,
+	0x87, 0x65, 0x12, 0x7a, 0xf8, 0x38, 0x09, 0x46, 0x79, 0x75, 0xf0, 0x8c, 0xd5, 0x0c, 0x05, 0x8f,
+	0x78, 0x1c, 0x72, 0xdf, 0xd5, 0xe8, 0x85, 0x8c, 0xfd, 0x72, 0xaf, 0xab, 0xd2, 0x62, 0xd6, 0x3d,
+	0xbe, 0x15, 0xf3, 0x07, 0xf5, 0xc1, 0xaf, 0x6b, 0x8d, 0x11, 0xc8, 0x11, 0x6c, 0x63, 0x95, 0xaf,
+	0x3f, 0x5e, 0x05, 0x52, 0x69, 0xb2, 0xbe, 0xa7, 0xdd, 0x17, 0xd5, 0xe4, 0x14, 0x88, 0x51, 0x9d,
+	0xcf, 0x84, 0xe0, 0x71, 0x06, 0x6e, 0x68, 0x70, 0x89, 0x85, 0xbc, 0x04, 0x57, 0x97, 0xcf, 0x07,
+	0x9d, 0xda, 0x95, 0xb2, 0x1a, 0x3d, 0x39, 0x82, 0x86, 0x1c, 0x8f, 0xe2, 0x40, 0xcd, 0x04, 0xf7,
+	0x9b, 0x1a, 0x04, 0x08, 0x1a, 0xbc, 0xbb, 0x60, 0x5c, 0xb1, 0xa5, 0x91, 0x9e, 0xc0, 0xf6, 0x6a,
+	0x3a, 0x37, 0x27, 0xff, 0x4f, 0x0b, 0xbc, 0xdb, 0x44, 0xf1, 0x4d, 0x49, 0x9f, 0x07, 0x93, 0x19,
+	0xcf, 0x46, 0xc3, 0x08, 0xcb, 0x52, 0x38, 0xe5, 0xa5, 0xa8, 0x3e, 0x2a, 0x45, 0x1b, 0xbc, 0x79,
+	0xa2, 0xf8, 0xcd, 0xa7, 0xd4, 0xa4, 0xbd, 0xc1, 0x16, 0xf2, 0xe3, 0xb8, 0x6a, 0x1b, 0xe2, 0xd2,
+	0x93, 0xa3, 0x78, 0xaa, 0x2b, 0xe2, 0x30, 0x7d, 0xa6, 0xaf, 0xa0, 0x8e, 0xec, 0x37, 0xc7, 0xf8,
+	0x16, 0x6a, 0xc6, 0x1b, 0x12, 0x9c, 0x49, 0x2e, 0xde, 0x45, 0x59, 0x88, 0x99, 0x44, 0x5e, 0xc3,
+	0xff, 0xf0, 0x1d, 0x1e, 0xfd, 0xcc, 0xa5, 0x0c, 0x46, 0x26, 0xd8, 0x16, 0x7b, 0xac, 0xa4, 0x27,
+	0xb0, 0xc7, 0xf8, 0xfd, 0x8c, 0x67, 0x35, 0x3e, 0xc7, 0x49, 0x7b, 0x2a, 0x6f, 0x34, 0x84, 0xdd,
+	0x35, 0x30, 0x52, 0xf8, 0x6f, 0x83, 0x6d, 0xba, 0xd4, 0xc9, 0xba, 0x94, 0xf6, 0x60, 0xff, 0x7d,
+	0xa2, 0xc6, 0x21, 0x7f, 0x3b, 0x8e, 0x83, 0x89, 0x46, 0xdf, 0x62, 0x7d, 0xfe, 0x5d, 0x35, 0xe9,
+	0x77, 0xe0, 0x97, 0xba, 0xd9, 0x9c, 0xd6, 0x6f, 0x00, 0xba, 0x4b, 0x62, 0x87, 0x50, 0xd3, 0x34,
+	0x11, 0x56, 0xe0, 0x9f, 0x19, 0xe8, 0x07, 0xa8, 0x31, 0x2e, 0x67, 0x13, 0x45, 0x0e, 0xc0, 0x1e,
+	0x86, 0xda, 0x5f, 0xb3, 0xb3, 0xb5, 0x00, 0x6a, 0x47, 0x97, 0x15, 0x66, 0x0f, 0x43, 0xf2, 0x39,
+	0x7e, 0x05, 0xcc, 0x9a, 0x69, 0xea, 0x76, 0x30, 0x8f, 0x5e, 0x56, 0x98, 0x25, 0xbb, 0x1e, 0xd4,
+	0x84, 0x76, 0x44, 0x7f, 0x85, 0xfa, 0x79, 0x32, 0x9d, 0x06, 0x31, 0xd6, 0xb0, 0x91, 0xa4, 0x5c,
+	0x04, 0xb8, 0x70, 0xb4, 0xeb, 0xad, 0x4e, 0x0d, 0x6f, 0x5e, 0xa7, 0x6c, 0x69, 0x20, 0x87, 0xe0,
+	0x72, 0xfc, 0xe2, 0x64, 0xbe, 0x35, 0x4b, 0xfd, 0x09, 0xba, 0xac, 0x30, 0x63, 0x21, 0x87, 0x7a,
+	0xc5, 0x39, 0xa5, 0x2b, 0x0e, 0xd9, 0xa9, 0x87, 0xae, 0x0b, 0x4e, 0x20, 0x46, 0xf4, 0x35, 0x78,
+	0x8c, 0xcb, 0x34, 0x89, 0x25, 0xc7, 0x3c, 0x0d, 0x56, 0xf2, 0xd4, 0x60, 0xb9, 0x88, 0x3d, 0xca,
+	0xfa, 0x03, 0x15, 0x28, 0x0d, 0xca, 0x3b, 0x0c, 0xb3, 0xd4, 0x60, 0xb9, 0x88, 0xa0, 0xc1, 0xd5,
+	0x3f, 0x80, 0x8e, 0x9f, 0x83, 0x7d, 0x9d, 0x92, 0x3a, 0x38, 0x17, 0xbd, 0x9b, 0x9d, 0x0a, 0xf1,
+	0xa0, 0x3a, 0xe8, 0xbd, 0xff, 0x71, 0xc7, 0xea, 0xfc, 0xee, 0x80, 0x77, 0x36, 0x19, 0x25, 0x02,
+	0x13, 0xf1, 0x3d, 0x34, 0x57, 0x76, 0x3f, 0x79, 0x86, 0x21, 0x14, 0x3e, 0x2f, 0x6d, 0x52, 0x50,
+	0x32, 0xae, 0x68, 0x85, 0xfc, 0x04, 0xff, 0x5f, 0xdb, 0xdd, 0x64, 0x7f, 0x09, 0x2d, 0x7c, 0x20,
+	0xda, 0x7e, 0xa9, 0xc9, 0xf8, 0xfa, 0x01, 0x5a, 0xab, 0x5b, 0x88, 0xec, 0x22, 0xb6, 0xb8, 0xe6,
+	0xdb, 0xcf, 0x8a, 0x5a, 0x73, 0xf9, 0x15, 0x54, 0x71, 0xac, 0x49, 0x0b, 0xcd, 0xf9, 0x7a, 0x6a,
+	0x37, 0x73, 0x69, 0xc1, 0x76, 0x6d, 0xc2, 0x0c, 0xdb, 0xd2, 0x29, 0x35, 0x6c, 0xcb, 0x66, 0x92,
+	0x56, 0xc8, 0x2d, 0xec, 0x95, 0x4e, 0x00, 0xf9, 0x02, 0x2f, 0x3d, 0x39, 0x63, 0xed, 0x17, 0x4f,
+	0x9a, 0xb5, 0xdf, 0x4e, 0x1f, 0xea, 0xdd, 0xf3, 0x81, 0x4a, 0x04, 0x27, 0x5f, 0x82, 0x73, 0xc1,
+	0x15, 0x59, 0x76, 0x5c, 0x1b, 0x0c, 0x21, 0xdd, 0xc8, 0x15, 0xf2, 0x15, 0x54, 0x07, 0x3c, 0x8e,
+	0x48, 0xb1, 0xe5, 0x1e, 0xc3, 0x3a, 0xbf, 0x59, 0xe0, 0xf6, 0x45, 0x32, 0xe4, 0xe4, 0x18, 0x9a,
+	0x78, 0x21, 0xef, 0x2d, 0x9d, 0x9d, 0x4c, 0x68, 0xb7, 0xb2, 0x3b, 0xba, 0x37, 0x69, 0x25, 0xc7,
+	0xe6, 0x2d, 0x66, 0x46, 0xea, 0xaa, 0x1c, 0xfb, 0x06, 0xb6, 0x06, 0x79, 0x5f, 0x98, 0xa4, 0x16,
+	0x46, 0xb4, 0x78, 0x63, 0x58, 0xd3, 0x7f, 0x74, 0xdf, 0xfe, 0x1d, 0x00, 0x00, 0xff, 0xff, 0x87,
+	0x75, 0x37, 0x37, 0xdd, 0x09, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -1221,6 +1411,7 @@ type AlgorandClient interface {
 	ProposeBlock(ctx context.Context, in *ProposeBlockArgs, opts ...grpc.CallOption) (*ProposeBlockRet, error)
 	Vote(ctx context.Context, in *VoteArgs, opts ...grpc.CallOption) (*VoteRet, error)
 	RequestBlockChain(ctx context.Context, in *RequestBlockChainArgs, opts ...grpc.CallOption) (*RequestBlockChainRet, error)
+	NoticeFinalBlockValue(ctx context.Context, in *NoticeFinalBlockValueArgs, opts ...grpc.CallOption) (*NoticeFinalBlockValueRet, error)
 }
 
 type algorandClient struct {
@@ -1276,6 +1467,15 @@ func (c *algorandClient) RequestBlockChain(ctx context.Context, in *RequestBlock
 	return out, nil
 }
 
+func (c *algorandClient) NoticeFinalBlockValue(ctx context.Context, in *NoticeFinalBlockValueArgs, opts ...grpc.CallOption) (*NoticeFinalBlockValueRet, error) {
+	out := new(NoticeFinalBlockValueRet)
+	err := c.cc.Invoke(ctx, "/pb.Algorand/NoticeFinalBlockValue", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AlgorandServer is the server API for Algorand service.
 type AlgorandServer interface {
 	AppendBlock(context.Context, *AppendBlockArgs) (*AppendBlockRet, error)
@@ -1283,6 +1483,30 @@ type AlgorandServer interface {
 	ProposeBlock(context.Context, *ProposeBlockArgs) (*ProposeBlockRet, error)
 	Vote(context.Context, *VoteArgs) (*VoteRet, error)
 	RequestBlockChain(context.Context, *RequestBlockChainArgs) (*RequestBlockChainRet, error)
+	NoticeFinalBlockValue(context.Context, *NoticeFinalBlockValueArgs) (*NoticeFinalBlockValueRet, error)
+}
+
+// UnimplementedAlgorandServer can be embedded to have forward compatible implementations.
+type UnimplementedAlgorandServer struct {
+}
+
+func (*UnimplementedAlgorandServer) AppendBlock(ctx context.Context, req *AppendBlockArgs) (*AppendBlockRet, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AppendBlock not implemented")
+}
+func (*UnimplementedAlgorandServer) AppendTransaction(ctx context.Context, req *AppendTransactionArgs) (*AppendTransactionRet, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AppendTransaction not implemented")
+}
+func (*UnimplementedAlgorandServer) ProposeBlock(ctx context.Context, req *ProposeBlockArgs) (*ProposeBlockRet, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ProposeBlock not implemented")
+}
+func (*UnimplementedAlgorandServer) Vote(ctx context.Context, req *VoteArgs) (*VoteRet, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Vote not implemented")
+}
+func (*UnimplementedAlgorandServer) RequestBlockChain(ctx context.Context, req *RequestBlockChainArgs) (*RequestBlockChainRet, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RequestBlockChain not implemented")
+}
+func (*UnimplementedAlgorandServer) NoticeFinalBlockValue(ctx context.Context, req *NoticeFinalBlockValueArgs) (*NoticeFinalBlockValueRet, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method NoticeFinalBlockValue not implemented")
 }
 
 func RegisterAlgorandServer(s *grpc.Server, srv AlgorandServer) {
@@ -1379,6 +1603,24 @@ func _Algorand_RequestBlockChain_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Algorand_NoticeFinalBlockValue_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(NoticeFinalBlockValueArgs)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AlgorandServer).NoticeFinalBlockValue(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/pb.Algorand/NoticeFinalBlockValue",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AlgorandServer).NoticeFinalBlockValue(ctx, req.(*NoticeFinalBlockValueArgs))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var _Algorand_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "pb.Algorand",
 	HandlerType: (*AlgorandServer)(nil),
@@ -1402,6 +1644,10 @@ var _Algorand_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RequestBlockChain",
 			Handler:    _Algorand_RequestBlockChain_Handler,
+		},
+		{
+			MethodName: "NoticeFinalBlockValue",
+			Handler:    _Algorand_NoticeFinalBlockValue_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
@@ -1446,6 +1692,17 @@ func (c *bCStoreClient) Send(ctx context.Context, in *Transaction, opts ...grpc.
 type BCStoreServer interface {
 	Get(context.Context, *Empty) (*Result, error)
 	Send(context.Context, *Transaction) (*Result, error)
+}
+
+// UnimplementedBCStoreServer can be embedded to have forward compatible implementations.
+type UnimplementedBCStoreServer struct {
+}
+
+func (*UnimplementedBCStoreServer) Get(ctx context.Context, req *Empty) (*Result, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Get not implemented")
+}
+func (*UnimplementedBCStoreServer) Send(ctx context.Context, req *Transaction) (*Result, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Send not implemented")
 }
 
 func RegisterBCStoreServer(s *grpc.Server, srv BCStoreServer) {
@@ -1499,6 +1756,150 @@ var _BCStore_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Send",
 			Handler:    _BCStore_Send_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "bc.proto",
+}
+
+// ProbeClient is the client API for Probe service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
+type ProbeClient interface {
+	SendRPState(ctx context.Context, in *RPState, opts ...grpc.CallOption) (*Response, error)
+	SendSLState(ctx context.Context, in *SLState, opts ...grpc.CallOption) (*Response, error)
+	SendBlockChain(ctx context.Context, in *Blockchain, opts ...grpc.CallOption) (*Response, error)
+}
+
+type probeClient struct {
+	cc *grpc.ClientConn
+}
+
+func NewProbeClient(cc *grpc.ClientConn) ProbeClient {
+	return &probeClient{cc}
+}
+
+func (c *probeClient) SendRPState(ctx context.Context, in *RPState, opts ...grpc.CallOption) (*Response, error) {
+	out := new(Response)
+	err := c.cc.Invoke(ctx, "/pb.Probe/SendRPState", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *probeClient) SendSLState(ctx context.Context, in *SLState, opts ...grpc.CallOption) (*Response, error) {
+	out := new(Response)
+	err := c.cc.Invoke(ctx, "/pb.Probe/SendSLState", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *probeClient) SendBlockChain(ctx context.Context, in *Blockchain, opts ...grpc.CallOption) (*Response, error) {
+	out := new(Response)
+	err := c.cc.Invoke(ctx, "/pb.Probe/SendBlockChain", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// ProbeServer is the server API for Probe service.
+type ProbeServer interface {
+	SendRPState(context.Context, *RPState) (*Response, error)
+	SendSLState(context.Context, *SLState) (*Response, error)
+	SendBlockChain(context.Context, *Blockchain) (*Response, error)
+}
+
+// UnimplementedProbeServer can be embedded to have forward compatible implementations.
+type UnimplementedProbeServer struct {
+}
+
+func (*UnimplementedProbeServer) SendRPState(ctx context.Context, req *RPState) (*Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SendRPState not implemented")
+}
+func (*UnimplementedProbeServer) SendSLState(ctx context.Context, req *SLState) (*Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SendSLState not implemented")
+}
+func (*UnimplementedProbeServer) SendBlockChain(ctx context.Context, req *Blockchain) (*Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SendBlockChain not implemented")
+}
+
+func RegisterProbeServer(s *grpc.Server, srv ProbeServer) {
+	s.RegisterService(&_Probe_serviceDesc, srv)
+}
+
+func _Probe_SendRPState_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RPState)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProbeServer).SendRPState(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/pb.Probe/SendRPState",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProbeServer).SendRPState(ctx, req.(*RPState))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Probe_SendSLState_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SLState)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProbeServer).SendSLState(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/pb.Probe/SendSLState",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProbeServer).SendSLState(ctx, req.(*SLState))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Probe_SendBlockChain_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Blockchain)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProbeServer).SendBlockChain(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/pb.Probe/SendBlockChain",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProbeServer).SendBlockChain(ctx, req.(*Blockchain))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+var _Probe_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "pb.Probe",
+	HandlerType: (*ProbeServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "SendRPState",
+			Handler:    _Probe_SendRPState_Handler,
+		},
+		{
+			MethodName: "SendSLState",
+			Handler:    _Probe_SendSLState_Handler,
+		},
+		{
+			MethodName: "SendBlockChain",
+			Handler:    _Probe_SendBlockChain_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

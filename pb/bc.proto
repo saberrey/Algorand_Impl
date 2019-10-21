@@ -8,6 +8,7 @@ message Empty{
 
 // Represent a void message indicating success
 message Success {
+    string s = 1;
 }
 
 // Represents an error.
@@ -16,7 +17,8 @@ message Error {
 }
 
 message Transaction {
-    string v = 1;
+    int64 id = 1;
+    string v = 2;
 }
 
 // A single Block on a Blockchain
@@ -49,11 +51,17 @@ message AppendTransactionRet {
 }
 
 message ProposeBlockArgs {
-    SIGRet credential = 1;
-    Block block = 2;
-    string value = 3;
-    int64 round = 4;
-    string peer = 5;
+    string peer = 1;
+    int64 round = 2;
+    int64 period = 3;
+    string flag = 4;
+    int64 credence = 5;
+    bytes q = 6;
+    bytes nextQ = 7;
+    string hashOfLastBlock = 8;
+    string hashOfCurrentBlock = 9;
+    Block block = 10;
+    SIGRet signature = 11;
 }
 
 message ProposeBlockRet {
@@ -61,9 +69,15 @@ message ProposeBlockRet {
 }
 
 message VoteArgs {
-    SIGRet message = 1;
-    int64 round = 2;
-    string peer = 3;
+    string peer = 1;
+    string value = 2;
+    int64 round = 3;
+    int64 period = 4;
+    string voteType = 5;
+    SIGRet signature = 6;
+
+    //step
+    int64 step = 7;
 }
 
 message VoteRet {
@@ -72,8 +86,7 @@ message VoteRet {
 
 message SIGRet {
     string userId = 1;
-    repeated string message = 2;
-    string signedMessage = 3;
+    bytes signedMessage = 2;
 }
 
 message RequestBlockChainArgs {
@@ -82,7 +95,17 @@ message RequestBlockChainArgs {
 
 message RequestBlockChainRet {
     string peer = 1;
-    repeated Block blockchain = 2; 
+    repeated Block blockchain = 2;
+    bytes q = 3;
+}
+
+message NoticeFinalBlockValueArgs {
+    string peer = 1;
+    string value = 2;
+}
+
+message NoticeFinalBlockValueRet {
+    bool success = 1;
 }
 
 // Algorand service
@@ -92,6 +115,7 @@ service Algorand {
     rpc ProposeBlock(ProposeBlockArgs) returns (ProposeBlockRet) {}
     rpc Vote(VoteArgs) returns (VoteRet) {}
     rpc RequestBlockChain(RequestBlockChainArgs) returns (RequestBlockChainRet) {}
+    rpc NoticeFinalBlockValue(NoticeFinalBlockValueArgs) returns (NoticeFinalBlockValueRet) {}
 }
 
 message Blockchain {
@@ -124,3 +148,22 @@ service BCStore {
     rpc Get (Empty) returns (Result) {}
     rpc Send (Transaction) returns (Result) {}
 }
+
+message Response {
+    string Success = 1;
+}
+
+message RPState {
+    repeated string Message = 1;//round period
+}
+
+message SLState {
+    repeated string Message = 1;//step leader
+}
+
+service Probe {
+    rpc SendRPState (RPState) returns (Response) {}
+    rpc SendSLState (SLState) returns (Response) {}
+    rpc SendBlockChain (Blockchain) returns (Response) {}
+}
+

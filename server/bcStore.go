@@ -5,7 +5,7 @@ import (
 
 	context "golang.org/x/net/context"
 
-	"github.com/nyu-distributed-systems-fa18/algorand/pb"
+	"github.com/nyu-distributed-systems-fa18/BGPalgorand_testMode/pb"
 )
 
 // The struct for data to send over channel
@@ -27,7 +27,7 @@ func (bcs *BCStore) Get(ctx context.Context, in *pb.Empty) (*pb.Result, error) {
 	r := pb.Command{Operation: pb.Op_GET, Arg: &pb.Command_Empty{Empty: in}}
 	// Send request over the channel
 	bcs.C <- InputChannelType{command: r, response: c}
-	log.Printf("Waiting for get response")
+	//log.Printf("Waiting for get response")
 	result := <-c
 	// The bit below works because Go maps return the 0 value for non existent keys, which is empty in this case.
 	return &result, nil
@@ -40,20 +40,23 @@ func (bcs *BCStore) Send(ctx context.Context, in *pb.Transaction) (*pb.Result, e
 	r := pb.Command{Operation: pb.Op_SEND, Arg: &pb.Command_Tx{Tx: in}}
 	// Send request over the channel
 	bcs.C <- InputChannelType{command: r, response: c}
-	log.Printf("Waiting for send response")
+	//log.Printf("Waiting for send response")
 	result := <-c
 
 	return &result, nil
 }
+
+/****************get&send are same********************/
 
 func (bcs *BCStore) GetResponse(arg *pb.Empty) pb.Result {
 	return pb.Result{Result: &pb.Result_Bc{Bc: &pb.Blockchain{Blocks: bcs.blockchain}}}
 }
 
 func (bcs *BCStore) SendResponse(arg *pb.Transaction) pb.Result {
-	return pb.Result{Result: &pb.Result_Bc{Bc: &pb.Blockchain{Blocks: bcs.blockchain}}}
+	return pb.Result{Result: &pb.Result_S{S: &pb.Success{}}}
 }
 
+/**************************************************/
 func (bcs *BCStore) HandleCommand(op InputChannelType) {
 	switch c := op.command; c.Operation {
 	case pb.Op_GET:

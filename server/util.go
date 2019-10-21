@@ -1,18 +1,85 @@
 package main
 
 import (
-	"log"
 	"bytes"
+	"crypto"
+	crand "crypto/rand"
+	"crypto/rsa"
 	"crypto/sha256"
+	"crypto/x509"
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
-	"time"
-	"math/rand"
-	"strings"
+	"encoding/pem"
+	"io/ioutil"
+	"log"
+	"os"
 	"strconv"
+	"strings"
+	"time"
 
-	"github.com/nyu-distributed-systems-fa18/algorand/pb"
+	"github.com/nyu-distributed-systems-fa18/BGPalgorand_testMode/pb"
 )
+
+const BLOCK_SIZE = 10000
+
+func verifyProposal(round int64, period int64, credence int64, q []byte, lastHash string, message *pb.ProposeBlockArgs, pubKey *rsa.PublicKey) bool {
+	//log.Printf("round:%d,period:%d,credence:%d,Q:%v,hash:%s", message.Round, message.Period, message.Credence, message.Q, message.HashOfLastBlock)
+	//log.Printf("round:%d,period:%d,credence:%d,Q:%v,hash:%s", round, period, credence, q, lastHash)
+	if round != message.Round || period != message.Period || credence != message.Credence || !bytes.Equal(q, message.Q) || lastHash != message.HashOfLastBlock {
+		return false
+	}
+	if calculateHash(message.Block) != message.HashOfCurrentBlock {
+		return false
+	}
+	sigParams := []string{strconv.FormatInt(round, 10),
+		strconv.FormatInt(period, 10),
+		"Sharding",
+		strconv.FormatInt(credence, 10),
+		string(q),
+		lastHash,
+		message.HashOfCurrentBlock,
+	}
+	if err := VerifyMessage(sigParams, pubKey, message.Signature.SignedMessage); err != nil {
+		return false
+	}
+	return true
+}
+
+func verifyTransaction(localTxs map[int64]*pb.Transaction, recievedTxs []*pb.Transaction) bool {
+	for _, t := range recievedTxs {
+		if _, ok := localTxs[t.Id]; ok {
+			continue
+		} else {
+			return false
+		}
+	}
+	return true
+}
+
+func verifyVote(round int64, period int64, message *pb.VoteArgs, pubkey *rsa.PublicKey) bool {
+	if round != message.Round || period != message.Period {
+		return false
+	}
+	sigParams := []string{message.Value, strconv.FormatInt(round, 10),
+		strconv.FormatInt(period, 10),
+		message.VoteType,
+	}
+
+	if err := VerifyMessage(sigParams, pubkey, message.Signature.SignedMessage); err != nil {
+		return false
+	}
+	return true
+}
+
+func hashByteTo01(message []byte) float64 {
+	h := sha256.New()
+	h.Write(message)
+	hashed := h.Sum(nil)
+	data := float64(binary.BigEndian.Uint64(hashed))
+	x := find(data)
+	return x
+}
 
 func calculateHash(block *pb.Block) string {
 	var transactions bytes.Buffer
@@ -26,31 +93,17 @@ func calculateHash(block *pb.Block) string {
 	return hex.EncodeToString(hashed)
 }
 
-func signMessage(message []string) string {
-	s := strings.Join(message[:],"")
-
-	h := sha256.New()
-	h.Write([]byte(s))
-	hashed := h.Sum(nil)
-	return hex.EncodeToString(hashed)
+func find(data float64) float64 {
+	for i := float64(10); i > 0; i = i * 10 {
+		x := data / i
+		if x < 1 {
+			return x
+		}
+	}
+	return 1
 }
 
-func generateBlock(oldBlock *pb.Block, tx *pb.Transaction) *pb.Block {
-	newBlock := new(pb.Block)
-	t := time.Now()
-	transactions := []*pb.Transaction{}
-	transactions = append(transactions, tx)
-
-	newBlock.Id = oldBlock.Id + 1
-	newBlock.Timestamp = t.String()
-	newBlock.Tx = transactions //simple list of Transactions with one Transaction for now until we decide how to aggreate multiple into one block
-	newBlock.PrevHash = oldBlock.Hash
-	newBlock.Hash = calculateHash(newBlock) // set to the hash of all the bytes of this block
-
-	return newBlock
-}
-
-func prepareBlock(block *pb.Block, blockchain []*pb.Block) *pb.Block {
+func prepareBlock(transactions map[int64]*pb.Transaction, blockchain []*pb.Block) *pb.Block {
 	newBlock := new(pb.Block)
 	lastBlock := blockchain[len(blockchain)-1]
 
@@ -60,22 +113,31 @@ func prepareBlock(block *pb.Block, blockchain []*pb.Block) *pb.Block {
 	//copy Transactions over to new Block
 	newBlock.Tx = []*pb.Transaction{}
 
-	for _, tx := range block.Tx {
-		newBlock.Tx = append(newBlock.Tx, tx)
-	}
-
-	blockMap := make(map[string]bool)
+	blockMap := make(map[int64]bool)
 	// loop through lastBlock's transactions and remove any that appear in newBlock
 	for _, tx := range lastBlock.Tx {
-		blockMap[tx.V] = true
+		blockMap[tx.Id] = true
+	}
+
+	for k, _ := range blockMap {
+		if _, ok := transactions[k]; ok {
+			delete(transactions, k)
+		}
 	}
 
 	tempTx := []*pb.Transaction{}
-	for _, tx := range newBlock.Tx {
-		if _, ok := blockMap[tx.V]; ok {
-			// ignore transactions we already appended from new block
-		} else {
-			tempTx = append(tempTx, tx)
+	if len(transactions) < BLOCK_SIZE {
+		for _, v := range transactions {
+			tempTx = append(tempTx, v)
+		}
+	} else {
+		i := 0
+		for _, v := range transactions {
+			tempTx = append(tempTx, v)
+			if i == 999 {
+				break
+			}
+			i++
 		}
 	}
 
@@ -87,126 +149,221 @@ func prepareBlock(block *pb.Block, blockchain []*pb.Block) *pb.Block {
 	return newBlock
 }
 
-func makeRange(min, max int64) []int64 {
-    a := make([]int64, max-min+1)
-    for i := range a {
-        a[i] = min + int64(i)
-    }
-    return a
-}
-
-func initStake(userIds []string, min, max int) map[string]int {
-	idToStake := make(map[string]int)
-
+func initCredence(userIds []string) map[string]int64 {
+	idTocredence := make(map[string]int64)
 	for _, id := range userIds {
-		seed,_ := strconv.ParseInt(id, 10, 64)
-		s := rand.NewSource(seed)
-		rand := rand.New(s)
-		stake := min + rand.Intn(max - min)
-
-		idToStake[id] = stake
+		idTocredence[id] = int64(1)
 	}
-	return idToStake
+	return idTocredence
 }
 
-func generateCandidatesByStake(userIds []string, idToStake map[string]int) []string {
-	// add up the total stake and create new array with that many slots
-	totalStake := 0
-	for _, v := range idToStake {
-		totalStake += v
+func isPotentialLeader(sig *pb.SIGRet) bool {
+	h := hashByteTo01(sig.SignedMessage)
+	if h > 0 && h < 0.15 {
+		return true
 	}
-	candidates := make([]string, totalStake)
+	return false
+}
 
-	// add user to candidates as many times as they have stake
-	i := 0
-	for _,member := range userIds {
-		for j := 0; j < idToStake[member]; j++ {
-			candidates[i] = member
-			i++
+func calculateNextQ(Q string, nextRound int64, key *rsa.PrivateKey) []byte {
+	newQ, err := SignMessage([]string{Q, strconv.FormatInt(nextRound, 10)}, key)
+	if err != nil {
+		log.Panic(err)
+	}
+	return newQ
+}
+
+func SIG(i string, message []string, key *rsa.PrivateKey) *pb.SIGRet {
+	signedMessage, err := SignMessage(message, key)
+	if err != nil {
+		log.Panic(err)
+	}
+	return &pb.SIGRet{UserId: i, SignedMessage: signedMessage}
+}
+
+func selectLeader(proposedValues map[string]string) string {
+	minCredential := ""
+	leader := ""
+
+	for k, v := range proposedValues {
+		if minCredential == "" {
+			minCredential = k
+			leader = v
+		} else if k < minCredential {
+			minCredential = k
+			leader = v
 		}
 	}
 
-	return candidates
+	return leader
 }
 
-func committeeSelection(arr []string, seed int64, k int64) []string {
-	// set up array to return as selected elements
-	// and random number generator
-	selection := make([]string, k)
-	s := rand.NewSource(seed)
-	rand := rand.New(s)
+func PrettyPrint(v interface{}) string {
+	b, err := json.MarshalIndent(v, "", "  ")
+	if err == nil {
+		return string(b)
+	}
+	return ""
+}
 
-	i := int64(0)
-	for i = 0; i < k; i++ {
-		random_idx := rand.Intn(len(arr))
-		selection[i] = arr[random_idx]
+//not used in this system
+func GenKeyPair(ID string) error {
+	_dir := "./" + ID
+	err := os.Mkdir(_dir, os.ModePerm)
+	//generate the private key
+	privateKey, err := rsa.GenerateKey(crand.Reader, 512)
+	if err != nil {
+		return err
 	}
 
-	return selection
+	der := x509.MarshalPKCS1PrivateKey(privateKey)
+	block := &pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: der,
+	}
+	file, err := os.Create(_dir + "/private.pem")
+	if err != nil {
+		return err
+	}
+	err = pem.Encode(file, block)
+	if err != nil {
+		return nil
+	}
+	//generate the public key
+	public := &privateKey.PublicKey
+	def, err := x509.MarshalPKIXPublicKey(public)
+	if err != nil {
+		return err
+	}
+
+	block = &pem.Block{
+		Type:  "RSA PUBLIC KEY",
+		Bytes: def,
+	}
+	file, err = os.Create(_dir + "/public.pem")
+	if err != nil {
+		return err
+	}
+	err = pem.Encode(file, block)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
-func sortition(privateKey int64, round int64, role string, userId string, candidates []string, k int64) (string, string, int64) {
-	// sortition selects k committee members out of all users
-	committee := committeeSelection(candidates, round, k)
+func Getpubkeyfrombyte(userid string) *rsa.PublicKey {
+	publ, err := ioutil.ReadFile("./" + userid + "/" + "public.pem")
+	block, _ := pem.Decode(publ)
+	if block == nil || block.Type != "RSA PUBLIC KEY" {
+		log.Fatal("failed to decode PEM block containing public key")
+	}
+	pub, err := x509.ParsePKIXPublicKey(block.Bytes)
 
-	// print committee to verify it is the same accross all servers
-	log.Printf("Round %v Committee: %#v", round, committee)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return pub.(*rsa.PublicKey)
+}
 
-	// Add up how many times we were selected
-	votes := int64(0)
-	for _, member := range committee {
-		if member == userId {
-			votes++
+func Getprikeyfrombyte(userid string) *rsa.PrivateKey {
+	priv, err := ioutil.ReadFile("./" + userid + "/" + "private.pem")
+	if err != nil {
+		log.Panic(err)
+	}
+	block, _ := pem.Decode(priv)
+	if block == nil || block.Type != "RSA PRIVATE KEY" {
+		log.Fatal("failed to decode PEM block containing public key")
+	}
+	pri, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+	return pri
+}
+
+func GenerateKeyPair(userID []string) (map[string]*rsa.PrivateKey, map[string]*rsa.PublicKey) {
+	idToPrivateKey := make(map[string]*rsa.PrivateKey)
+	idToPublicKey := make(map[string]*rsa.PublicKey)
+
+	for _, v := range userID {
+		//generate the private key
+		privateKey, err := rsa.GenerateKey(crand.Reader, 512)
+		if err != nil {
+			log.Panic("generate key error")
 		}
+		//generate the public key
+		publicKey := &privateKey.PublicKey
+		idToPrivateKey[v] = privateKey
+		idToPublicKey[v] = publicKey
 	}
 
-	return "hash", "proof", votes
+	return idToPrivateKey, idToPublicKey
 }
 
-func verifySort(userId string, candidates []string, round int64, k int64, period int64) bool {
-	sigParams := []string{strconv.FormatInt(round, 10), strconv.FormatInt(period, 10)}
+func SignMessage(message []string, Prikey *rsa.PrivateKey) ([]byte, error) {
+	s := strings.Join(message[:], "")
 
-	proposerCredential := SIG(userId, sigParams)
+	h := sha256.New()
+	h.Write([]byte(s))
+	hashed := h.Sum(nil)
 
-	committee := committeeSelection(candidates, round, k)
+	opts := rsa.PSSOptions{rsa.PSSSaltLengthAuto, crypto.SHA256}
+	sig, err := rsa.SignPSS(crand.Reader, Prikey, crypto.SHA256, hashed, &opts)
+	if err != nil {
+		return nil, err
+	}
+	return sig, nil
+}
 
-	// loop through committee and verify userId is in there
-	for _, member := range committee {
-		memberCredential := SIG(member, sigParams)
+func VerifyMessage(message []string, Pubkey *rsa.PublicKey, sig []byte) error {
+	s := strings.Join(message[:], "")
 
-		if memberCredential.SignedMessage == proposerCredential.SignedMessage {
+	h := sha256.New()
+	h.Write([]byte(s))
+	hashed := h.Sum(nil)
+
+	opts := rsa.PSSOptions{rsa.PSSSaltLengthAuto, crypto.SHA256}
+	err := rsa.VerifyPSS(Pubkey, crypto.SHA256, hashed, sig, &opts)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func isCommitteeMember(user string, committeeMember []string) bool {
+	for _, i := range committeeMember {
+		if user == i {
 			return true
 		}
 	}
 	return false
 }
 
-func SIG(i string, message []string) *pb.SIGRet {
-	signedMessage := signMessage(message)
-	return &pb.SIGRet{UserId: i, Message: message, SignedMessage: signedMessage}
-}
+func executeProposal(state *ServerState, proposal *pb.ProposeBlockArgs, bcs *BCStore) {
+	//log.Printf("%v", PrettyPrint(pbc.arg.Block))
+	proposerId := proposal.Signature.UserId
+	sigValue := string(proposal.Signature.SignedMessage)
+	//log.Printf("ProposeBlock from %v", proposerId)
 
-func selectLeader(proposedValues map[string]string) string {
-	minCredential := ""
-	value := ""
-
-	for k, v := range proposedValues {
-		if minCredential == "" {
-			minCredential = k
-			value = v
-		} else if k < minCredential {
-			minCredential = k
-			value = v
-		}
+	//Has proposaled?
+	if _, ok := state.periodState.idToBlock[proposerId]; ok {
+		log.Printf("%s have proposaled in this period", proposerId)
+		return
 	}
+	verified := verifyProposal(state.round, state.period, state.idToCredence[proposerId],
+		state.Q, bcs.blockchain[len(bcs.blockchain)-1].Hash, proposal, state.idToPublicKey[proposerId])
+	verifiedTX := verifyTransaction(state.transactionPool, proposal.Block.Tx)
 
-	return value
-}
-
-func PrettyPrint(v interface{}) string {
-	b, err := json.MarshalIndent(v, "", "  ")
-	if err == nil {
-			return string(b)
+	if verified && verifiedTX {
+		// add verified block to list of blocks I've seen this period
+		state.committeeMember = append(state.committeeMember, proposerId)
+		state.periodState.sigLeaderToId[sigValue] = proposerId
+		state.periodState.idToBlock[proposerId] = proposal.Block
+		state.periodState.valueToQ[proposal.HashOfCurrentBlock] = proposal.NextQ
+		state.periodState.valueToBlock[proposal.HashOfCurrentBlock] = proposal.Block
+	} else {
+		// rejected proposed block
+		log.Printf("DENIED that %v is on the committee for round %v", proposerId, state.round)
 	}
-	return ""
 }
